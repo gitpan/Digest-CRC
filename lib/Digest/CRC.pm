@@ -15,7 +15,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 %_typedef = (
 # name,  [width,init,xorout,refout,poly,refin);
@@ -29,7 +29,7 @@ sub new {
   my %params=@_;
   my $class = ref($that) || $that;
   my $self = {map { ($_ => $params{$_}) }
-                      qw(type width init xorout refin refout)};
+                      qw(type width init xorout poly refin refout)};
   bless $self, $class;
   $self->reset();
   #use Data::Dumper; print Dumper $self;
@@ -232,7 +232,7 @@ Digest::CRC - Generic CRC functions
   $crc = crc16("123456789");
   $crc = crcccitt("123456789");
 
-  $crc = crc($input,$width,$init,$xorout,$poly,$refin,$refout);
+  $crc = crc($input,$width,$init,$xorout,$refout,$poly,$refin);
 
   # OO style
   use Digest::CRC;

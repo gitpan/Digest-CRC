@@ -9,3 +9,9 @@ Revision history for Perl extension Digest::CRC.
 0.04  Fri Apr 23 12:05:18 2004
 	- added _hex functions 
 
+0.05  Fri Apr 23 13:14:04 2004
+	- some bug fixes
+
+0.06  Mon May 03 10:45:12 2004
+	- two bug fixes from Tim Heaney <theaney@cablespeed.com>
+

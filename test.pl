@@ -6,7 +6,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 BEGIN { $| = 1; }
 use_ok(Digest::CRC, qw(crc32 crc16 crcccitt));
@@ -36,3 +36,8 @@ ok($ctx->digest == 10673, 'OO crcccitt');
 $ctx = Digest::CRC->new(type=>"crc16"); 
 $ctx->add($input);
 ok($ctx->digest == 47933, 'OO crc16'); 
+
+$ctx = Digest::CRC->new(width=>16,init=>0,xorout=>0,poly=>0x3456,
+                        refin=>1,refout=>1);
+$ctx->add($input);
+ok($ctx->digest == 12803, 'OO crc16 poly 3456'); 
