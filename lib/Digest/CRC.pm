@@ -1,7 +1,7 @@
 package Digest::CRC;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT_OK %_typedef);
+use vars qw($VERSION $XS_VERSION @ISA @EXPORT_OK %_typedef);
 
 require Exporter;
 
@@ -16,50 +16,22 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION = '0.08';
+$VERSION    = '0.09';
+$XS_VERSION = $VERSION;
+$VERSION    = eval $VERSION;
 
-%_typedef = (
-# name,  [width,init,xorout,refout,poly,refin);
-  crc8 => [8,0,0,0,0x07,0],
-  crcccitt => [16,0xffff,0,0,0x1021,0],
-  crc16 => [16,0,0,1,0x8005,1],
-  crc32 => [32,0xffffffff,0xffffffff,1,0x04C11DB7,1],
-);
+eval {
+  # PERL_DL_NONLAZY must be false, or any errors in loading will just
+  # cause the perl code to be tested
+  local $ENV{PERL_DL_NONLAZY} = 0 if $ENV{PERL_DL_NONLAZY};
+  require DynaLoader;
+  local @ISA = qw(DynaLoader);
+  bootstrap Digest::CRC $XS_VERSION;
+  1
+};
 
-sub new {
-  my $that=shift;
-  my %params=@_;
-  my $class = ref($that) || $that;
-  my $self = {map { ($_ => $params{$_}) }
-                      qw(type width init xorout poly refin refout)};
-  bless $self, $class;
-  $self->reset();
-  $self
-}
-
-sub reset {
-  my $self = shift;
-  my $typeparams;
-  # default is crc32 if no type and no width is defined
-  if (!defined($self->{type}) && !defined($self->{width})) {
-    $self->{type} = "crc32";
-  }
-  if (defined($self->{type}) && exists($_typedef{$self->{type}})) {
-    $typeparams = $_typedef{$self->{type}};
-    $self->{width} = $typeparams->[0],
-    $self->{init} = $typeparams->[1],
-    $self->{xorout} = $typeparams->[2],
-    $self->{refout} = $typeparams->[3],
-    $self->{poly} = $typeparams->[4],
-    $self->{refin} = $typeparams->[5],
-  }
-  $self->{_tab} = [_tabinit($self->{width}, $self->{poly}, $self->{refin})];
-  delete $self->{_data};
-  $self
-}
-
-#########################################
-# Private init functions:
+# Only load the non-XS stuff on demand
+defined &_crc or eval <<'ENOXS';
 
 sub _reflect {
   my ($in, $width) = @_;
@@ -96,7 +68,7 @@ sub _tabinit {
     }
     push @crctab, $r&2**$width-1;
   }
-  @crctab;
+  \@crctab;
 }
 
 sub _crc {
@@ -119,6 +91,48 @@ sub _crc {
 
   $crc = $crc ^ $xorout;
   $crc & $mask;
+}
+
+ENOXS
+
+%_typedef = (
+# name,  [width,init,xorout,refout,poly,refin);
+  crc8 => [8,0,0,0,0x07,0],
+  crcccitt => [16,0xffff,0,0,0x1021,0],
+  crc16 => [16,0,0,1,0x8005,1],
+  crc32 => [32,0xffffffff,0xffffffff,1,0x04C11DB7,1],
+);
+
+sub new {
+  my $that=shift;
+  my %params=@_;
+  my $class = ref($that) || $that;
+  my $self = {map { ($_ => $params{$_}) }
+                      qw(type width init xorout poly refin refout)};
+  bless $self, $class;
+  $self->reset();
+  $self
+}
+
+sub reset {
+  my $self = shift;
+  my $typeparams;
+  # default is crc32 if no type and no width is defined
+  if (!defined($self->{type}) && !defined($self->{width})) {
+    $self->{type} = "crc32";
+  }
+  if (defined($self->{type}) && exists($_typedef{$self->{type}})) {
+    $typeparams = $_typedef{$self->{type}};
+    $self->{width} = $typeparams->[0],
+    $self->{init} = $typeparams->[1],
+    $self->{xorout} = $typeparams->[2],
+    $self->{refout} = $typeparams->[3],
+    $self->{poly} = $typeparams->[4],
+    $self->{refin} = $typeparams->[5],
+  }
+  $self->{_tab} = _tabinit($self->{width}, $self->{poly}, $self->{refin});
+  delete $self->{_data};
+  $self
 }
 
 #########################################
@@ -194,7 +208,7 @@ sub clone {
 
 sub crc {
   my ($message,$width,$init,$xorout,$refout,$poly,$refin) = @_;
-  _crc($message,$width,$init,$xorout,$refin,$refout,[_tabinit($width,$poly,$refin)]);
+  _crc($message,$width,$init,$xorout,$refin,$refout,_tabinit($width,$poly,$refin));
 }
 
 # CRC8

@@ -1,8 +1,9 @@
 Build.PL
+CRC.xs
 Changes
-lib/Digest/CRC.pm
-Makefile.PL
 MANIFEST
 META.yml
+Makefile.PL
 README
-test.pl
+lib/Digest/CRC.pm
+t/crc.t

@@ -1,21 +1,25 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl test.pl'
+BEGIN {
+  $tests = 16;
+  $| = 1;
 
-######################### We start with some black magic to print on failure.
+  eval "use Test::More tests => $tests";
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+  $@ and eval <<'ENDEV';
+$ok = 1;
 
-use Test::More tests => 12;
+print "1..$tests\n";
 
-BEGIN { $| = 1; }
-use_ok(Digest::CRC, qw(crc32 crc16 crcccitt crc8));
+sub ok {
+  my($res,$comment) = @_;
+  defined $comment and print "# $comment\n";
+  $res or print "not ";
+  print "ok ", $ok++, "\n";
+}
+ENDEV
+}
 
-######################### End of black magic.
-
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
+use Digest::CRC qw(crc32 crc16 crcccitt crc8);
+ok(1, 'use');
 
 my $input = "123456789";
 my ($crc32,$crc16,$crcccitt,$crc8) = (crc32($input),crc16($input),crcccitt($input),crc8($input));
@@ -58,3 +62,11 @@ $ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0xff,poly=>0x07,
 $ctx->add("f1");
 ok($ctx->digest == 106, 'OO crc8 init=ab, refout');
 
+$input = join '', 'aa'..'zz';
+($crc32,$crc16,$crcccitt,$crc8) = (crc32($input),crc16($input),crcccitt($input),crc8($input));
+
+# some more large messages
+ok($crc32 == 0xCDA63E54, 'crc32'); 
+ok($crcccitt == 0x9702, 'crcccitt'); 
+ok($crc16 == 0x0220, 'crc16'); 
+ok($crc8 == 0x82, 'crc8'); 

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Digest-CRC
-version: 0.08
+version: 0.09
 author:
   - Oliver Maul, oli@42.nu
 abstract: Generic CRC functions
@@ -12,5 +12,5 @@ conflicts: {}
 provides:
   Digest::CRC:
     file: lib/Digest/CRC.pm
-    version: 0.08
+    version: 0.09
 generated_by: Module::Build version 0.22

@@ -21,3 +21,7 @@ Revision history for Perl extension Digest::CRC.
 0.08  Sat May 21 22:32:34 2004
 	- crc8 bug fixed. Thanks to Mathis Moder <mathis@pixelconcepts.de>
 
+0.09  Mon Jul 05 23:37:13 2004
+	- major performance improvements by adding optional XS code. 
+          Thanks to Marcus Holland-Moritz <mhx-perl@gmx.net>
+
