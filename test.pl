@@ -6,10 +6,10 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-use Test::More tests => 9;
+use Test::More tests => 12;
 
 BEGIN { $| = 1; }
-use_ok(Digest::CRC, qw(crc32 crc16 crcccitt));
+use_ok(Digest::CRC, qw(crc32 crc16 crcccitt crc8));
 
 ######################### End of black magic.
 
@@ -18,11 +18,12 @@ use_ok(Digest::CRC, qw(crc32 crc16 crcccitt));
 # of the test code):
 
 my $input = "123456789";
-my ($crc32,$crc16,$crcccitt) = (crc32($input),crc16($input),crcccitt($input));
+my ($crc32,$crc16,$crcccitt,$crc8) = (crc32($input),crc16($input),crcccitt($input),crc8($input));
 
 ok($crc32 == 3421780262, 'crc32'); 
 ok($crcccitt == 10673, 'crcccitt'); 
 ok($crc16 == 47933, 'crc16'); 
+ok($crc8 == 244, 'crc8'); 
 
 my $ctx;
 $ctx = Digest::CRC->new(); 
@@ -42,9 +43,18 @@ $ctx = Digest::CRC->new(width=>16,init=>0,xorout=>0,poly=>0x3456,
 $ctx->add($input);
 ok($ctx->digest == 12803, 'OO crc16 poly 3456'); 
 
+$ctx = Digest::CRC->new(type=>"crc8");
+$ctx->add($input);
+ok($ctx->digest == 244, 'OO crc8');
+
 # crc8 test from Mathis Moder <mathis@pixelconcepts.de>
 $ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0x00,poly=>0x07,
                         refin=>0, refout=>0);
 $ctx->add($input);
-ok($ctx->digest == 135, 'OO crc8 poly 07');
+ok($ctx->digest == 135, 'OO crc8 init=ab');
+
+$ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0xff,poly=>0x07,
+                        refin=>1, refout=>1);
+$ctx->add("f1");
+ok($ctx->digest == 106, 'OO crc8 init=ab, refout');
 

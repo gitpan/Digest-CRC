@@ -8,17 +8,19 @@ require Exporter;
 @ISA = qw(Exporter);
 
 @EXPORT_OK = qw(
- crcccitt crc16 crc32 crc
+ crc8 crcccitt crc16 crc32 crc
  crc_hex crc_base64
  crcccitt_hex crcccitt_base64
+ crc8_hex crc8_base64
  crc16_hex crc16_base64
  crc32_hex crc32_base64
 );
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 %_typedef = (
 # name,  [width,init,xorout,refout,poly,refin);
+  crc8 => [8,0,0,0,0x07,0],
   crcccitt => [16,0xffff,0,0,0x1021,0],
   crc16 => [16,0,0,1,0x8005,1],
   crc32 => [32,0xffffffff,0xffffffff,1,0x04C11DB7,1],
@@ -32,7 +34,6 @@ sub new {
                       qw(type width init xorout poly refin refout)};
   bless $self, $class;
   $self->reset();
-  #use Data::Dumper; print Dumper $self;
   $self
 }
 
@@ -60,18 +61,23 @@ sub reset {
 #########################################
 # Private init functions:
 
+sub _reflect {
+  my ($in, $width) = @_;
+  my $out = 0;
+  for(my $i=1; $i < ($width+1); $i++) {
+    $out |= 1 << ($width-$i) if ($in & 1);
+    $in=$in>>1;
+  }
+  $out;
+}
+
 sub _tabinit {
   my ($width,$poly_in,$ref) = @_;
   my @crctab;
   my $poly = $poly_in;
 
   if ($ref) {
-    my $p = $poly;
-    $poly=0;
-    for(my $i=1; $i < ($width+1); $i++) {
-      $poly |= 1 << ($width-$i) if ($p & 1);
-      $p=$p>>1;
-    }
+    $poly = _reflect($poly,$width);
   }
 
   for (my $i=0; $i<256; $i++) {
@@ -94,18 +100,25 @@ sub _tabinit {
 }
 
 sub _crc {
-  my ($message,$width,$init,$xorout,$refout,$tab) = @_;
+  my ($message,$width,$init,$xorout,$refin,$refout,$tab) = @_;
   my $crc = $init;
+  $crc = _reflect($crc,$width) if $refin;
   my $pos = -length $message;
   my $mask = 2**$width-1;
   while ($pos) {
-    if ($refout) {
+    if ($refin) {
       $crc = ($crc>>8)^$tab->[($crc^ord(substr($message, $pos++, 1)))&0xff]
     } else {
-      $crc = (($crc<<8)&$mask)^$tab->[(($crc>>($width-8))^ord(substr $message,$pos++,1))&0xff]
+      $crc = (($crc<<8))^$tab->[(($crc>>($width-8))^ord(substr $message,$pos++,1))&0xff]
     }
   }
-  $crc ^ $xorout;
+
+  if ($refout^$refin) {
+    $crc = _reflect($crc,$width);
+  }
+
+  $crc = $crc ^ $xorout;
+  $crc & $mask;
 }
 
 #########################################
@@ -151,7 +164,7 @@ sub add_bits {
 sub digest {
   my $self = shift;
   _crc($self->{_data},$self->{width},$self->{init},$self->{xorout},
-       $self->{refout},$self->{_tab});
+       $self->{refin},$self->{refout},$self->{_tab});
 }
 
 sub hexdigest {
@@ -181,8 +194,13 @@ sub clone {
 
 sub crc {
   my ($message,$width,$init,$xorout,$refout,$poly,$refin) = @_;
-  _crc($message,$width,$init,$xorout,$refout,[_tabinit($width,$poly,$refin)]);
+  _crc($message,$width,$init,$xorout,$refin,$refout,[_tabinit($width,$poly,$refin)]);
 }
+
+# CRC8
+# poly: 07, width: 8, init: 00, revin: no, revout: no, xorout: no
+
+sub crc8 { crc($_[0],@{$_typedef{crc8}}) }
 
 # CRC-CCITT standard
 # poly: 1021, width: 16, init: ffff, refin: no, refout: no, xorout: no
@@ -204,6 +222,10 @@ sub crc32 { crc($_[0],@{$_typedef{crc32}}) }
 sub crc_hex { _encode_hex &crc }
 
 sub crc_base64 { _encode_base64 &crc }
+
+sub crc8_hex { _encode_hex &crc8 }
+
+sub crc8_base64 { _encode_base64 &crc8 }
 
 sub crcccitt_hex { _encode_hex &crcccitt }
 
@@ -228,10 +250,11 @@ Digest::CRC - Generic CRC functions
 
   # Functional style
 
-  use Digest::CRC qw(crc32 crc16 crcccitt crc);
+  use Digest::CRC qw(crc32 crc16 crcccitt crc crc8);
   $crc = crc32("123456789");
   $crc = crc16("123456789");
   $crc = crcccitt("123456789");
+  $crc = crc8("123456789");
 
   $crc = crc($input,$width,$init,$xorout,$refout,$poly,$refin);
 
