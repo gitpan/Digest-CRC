@@ -1,6 +1,8 @@
+Build.PL
 Changes
-CRC.pm
+lib/Digest/CRC.pm
 Makefile.PL
 MANIFEST
+META.yml
 README
 test.pl

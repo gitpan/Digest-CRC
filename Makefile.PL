@@ -3,5 +3,6 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'	=> 'Digest::CRC',
-    'VERSION_FROM' => 'CRC.pm', # finds $VERSION
+    'VERSION_FROM' => 'lib/Digest/CRC.pm', # finds $VERSION
+    'PL_FILES' => {},
 );

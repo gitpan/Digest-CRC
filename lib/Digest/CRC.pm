@@ -15,7 +15,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 %_typedef = (
 # name,  [width,init,xorout,refout,poly,refin);
@@ -208,7 +208,7 @@ sub crcccitt_hex { _encode_hex &crcccitt }
 
 sub crcccitt_base64 { _encode_base64 &crcccitt }
 
-sub crc16_hex { _encode_hex &crc16_hex }
+sub crc16_hex { _encode_hex &crc16 }
 
 sub crc16_base64 { _encode_base64 &crc16 }
 
