@@ -15,7 +15,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 %_typedef = (
 # name,  [width,init,xorout,refout,poly,refin);
@@ -97,11 +97,12 @@ sub _crc {
   my ($message,$width,$init,$xorout,$refout,$tab) = @_;
   my $crc = $init;
   my $pos = -length $message;
+  my $mask = 2**$width-1;
   while ($pos) {
     if ($refout) {
       $crc = ($crc>>8)^$tab->[($crc^ord(substr($message, $pos++, 1)))&0xff]
     } else {
-      $crc = (($crc<<8)&0xffff)^$tab->[(($crc>>($width-8))^ord(substr $message,$pos++,1))&0xff]
+      $crc = (($crc<<8)&$mask)^$tab->[(($crc>>($width-8))^ord(substr $message,$pos++,1))&0xff]
     }
   }
   $crc ^ $xorout;
