@@ -41,6 +41,17 @@ MODULE = Digest::CRC		PACKAGE = Digest::CRC
 
 PROTOTYPES: ENABLE
 
+UV
+_reflect(in, width)
+	UV in
+	IV width
+
+	CODE:
+		RETVAL = reflect(in, width);
+
+	OUTPUT:
+		RETVAL
+
 SV *
 _tabinit(width, poly, ref)
 	IV width

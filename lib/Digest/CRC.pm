@@ -16,7 +16,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION    = '0.09';
+$VERSION    = '0.10';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -29,6 +29,16 @@ eval {
   bootstrap Digest::CRC $XS_VERSION;
   1
 };
+
+sub _reflectperl {
+  my ($in, $width) = @_;
+  my $out = 0;
+  for(my $i=1; $i < ($width+1); $i++) {
+    $out |= 1 << ($width-$i) if ($in & 1);
+    $in=$in>>1;
+  }
+  $out;
+}
 
 # Only load the non-XS stuff on demand
 defined &_crc or eval <<'ENOXS';
@@ -74,7 +84,7 @@ sub _tabinit {
 sub _crc {
   my ($message,$width,$init,$xorout,$refin,$refout,$tab) = @_;
   my $crc = $init;
-  $crc = _reflect($crc,$width) if $refin;
+  $crc = __reflect($crc,$width) if $refin;
   my $pos = -length $message;
   my $mask = 2**$width-1;
   while ($pos) {
@@ -86,6 +96,7 @@ sub _crc {
   }
 
   if ($refout^$refin) {
+    print STDERR "refout\n";
     $crc = _reflect($crc,$width);
   }
 
@@ -108,9 +119,11 @@ sub new {
   my %params=@_;
   my $class = ref($that) || $that;
   my $self = {map { ($_ => $params{$_}) }
-                      qw(type width init xorout poly refin refout)};
+                      qw(type width init xorout poly refin refout cont)};
   bless $self, $class;
   $self->reset();
+  map { if (defined($params{$_})) { $self->{$_} = $params{$_} } }
+                      qw(type width init xorout poly refin refout cont);
   $self
 }
 
@@ -131,7 +144,7 @@ sub reset {
     $self->{refin} = $typeparams->[5],
   }
   $self->{_tab} = _tabinit($self->{width}, $self->{poly}, $self->{refin});
-  delete $self->{_data};
+  $self->{_data} = undef;
   $self
 }
 
@@ -164,10 +177,18 @@ sub addfile {
     require Symbol;
     $fh = Symbol::qualify($fh, scalar caller);
   }
-  # $self->{_data} .= do{local$/;<$fh>};
   my $read = 0;
   my $buffer = '';
-  $self->add($buffer) while $read = read $fh, $buffer, 8192;
+  my $crc;
+  my $oldinit = $self->{init};
+  while ($read = read $fh, $buffer, 32*1024) {
+    $self->add($buffer);
+    $crc = $self->digest;
+    $self->{cont}=1;
+    $self->{init}=$crc;
+  }
+  $self->{init} = $oldinit;
+  $self->{_crc} = $crc;
   die __PACKAGE__, " read failed: $!" unless defined $read;
   $self
 }
@@ -177,8 +198,21 @@ sub add_bits {
 
 sub digest {
   my $self = shift;
-  _crc($self->{_data},$self->{width},$self->{init},$self->{xorout},
-       $self->{refin},$self->{refout},$self->{_tab});
+  my $crc;
+  if (!$self->{_crc}) {
+    my $init = $self->{init};
+    if ($self->{cont}) {
+      $init = ($self->{init} ^ $self->{xorout});
+      $init = _reflect($init, $self->{width}) if $self->{refin};
+    }
+    $crc =_crc($self->{_data},$self->{width},$init,$self->{xorout},
+	 $self->{refin},$self->{refout},$self->{_tab});
+  } else {
+    $crc = $self->{_crc};
+    $self->{_crc} = undef;
+  }
+  $self->{_data} = undef;
+  $crc
 }
 
 sub hexdigest {
@@ -276,8 +310,8 @@ Digest::CRC - Generic CRC functions
   use Digest::CRC;
 
   $ctx = Digest::CRC->new(type=>"crc16");
-  $ctx = Digest::CRC->new(width=>16, init=>0x0000, xorout=>0x0000, 
-                          poly=>0x8005, refin=>1, refout=>1);
+  $ctx = Digest::CRC->new(width=>16, init=>0x2345, xorout=>0x0000, 
+                          poly=>0x8005, refin=>1, refout=>1, cont=>1);
 
   $ctx->add($data);
   $ctx->addfile(*FILE);

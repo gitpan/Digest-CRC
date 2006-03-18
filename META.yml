@@ -1,16 +1,10 @@
---- #YAML:1.0
-name: Digest-CRC
-version: 0.09
-author:
-  - Oliver Maul, oli@42.nu
-abstract: Generic CRC functions
-license: perl
-requires: {}
-recommends: {}
-build_requires: {}
-conflicts: {}
-provides:
-  Digest::CRC:
-    file: lib/Digest/CRC.pm
-    version: 0.09
-generated_by: Module::Build version 0.22
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         Digest-CRC
+version:      0.10
+version_from: lib/Digest/CRC.pm
+installdirs:  site
+requires:
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

@@ -1,5 +1,5 @@
 BEGIN {
-  $tests = 16;
+  $tests = 18;
   $| = 1;
 
   eval "use Test::More tests => $tests";
@@ -28,11 +28,24 @@ ok($crc32 == 3421780262, 'crc32');
 ok($crcccitt == 10673, 'crcccitt'); 
 ok($crc16 == 47933, 'crc16'); 
 ok($crc8 == 244, 'crc8'); 
-
-my $ctx;
-$ctx = Digest::CRC->new(); 
+my $ctx; $ctx = Digest::CRC->new(); 
 $ctx->add($input);
 ok($ctx->digest == 3421780262, 'OO crc32'); 
+
+# addfile
+open(F,"<Changes")||die "Cannot open Changes";
+$ctx->addfile(F);
+close(F);
+ok($ctx->digest == 83730842, 'OO crc32 with addfile'); 
+
+# start at offset >0 with previous checksum result
+$ctx = Digest::CRC->new(type=>"crc32",cont=>1,init=>1901368946); 
+open(F,"<Changes")||die "Cannot open Changes";
+use Fcntl qw(:seek);
+seek(F,536,Fcntl::SEEK_SET);
+$ctx->addfile(F);
+close(F);
+ok($ctx->digest == 3281456132, 'OO crc32 with addfile'); 
 
 $ctx = Digest::CRC->new(type=>"crcccitt"); 
 $ctx->add($input);
