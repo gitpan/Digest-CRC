@@ -28,3 +28,6 @@ Revision history for Perl extension Digest::CRC.
 0.10  Sat Mar 18 21:07:22 2004
         - adapted behaviour to Digest
 
+0.11  Wed Oct 31 20:26:13 2007
+        - fixed __reflect error
+

@@ -16,7 +16,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION    = '0.10';
+$VERSION    = '0.11';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -76,7 +76,8 @@ sub _tabinit {
 	}
       }
     }
-    push @crctab, $r&2**$width-1;
+    my $x=$r&2**$width-1;
+    push @crctab, $x;
   }
   \@crctab;
 }
@@ -88,6 +89,7 @@ sub _crc {
   my $pos = -length $message;
   my $mask = 2**$width-1;
   while ($pos) {
+  prinddt "pos=$pos\n";
     if ($refin) {
       $crc = ($crc>>8)^$tab->[($crc^ord(substr($message, $pos++, 1)))&0xff]
     } else {
@@ -96,7 +98,6 @@ sub _crc {
   }
 
   if ($refout^$refin) {
-    print STDERR "refout\n";
     $crc = _reflect($crc,$width);
   }
 
