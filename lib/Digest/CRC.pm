@@ -16,7 +16,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION    = '0.11';
+$VERSION    = '0.12';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -89,7 +89,6 @@ sub _crc {
   my $pos = -length $message;
   my $mask = 2**$width-1;
   while ($pos) {
-  prinddt "pos=$pos\n";
     if ($refin) {
       $crc = ($crc>>8)^$tab->[($crc^ord(substr($message, $pos++, 1)))&0xff]
     } else {
