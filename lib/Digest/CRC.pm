@@ -16,7 +16,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION    = '0.12';
+$VERSION    = '0.13';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 

@@ -45,17 +45,17 @@ open(F,"<README")||die "Cannot open Changes";
 $ctx->addfile(F);
 close(F);
 my $y = $ctx->digest;
-ok($y == 1468974098, 'OO crc32 with addfile '.$y); 
+ok($y == 1413438101, 'OO crc32 with addfile '.$y); 
 
 # start at offset >0 with previous checksum result
-$ctx = Digest::CRC->new(type=>"crc32",cont=>1,init=>2583869373); 
+$ctx = Digest::CRC->new(type=>"crc32",cont=>1,init=>1413438101); 
 open(F,"<README")||die "Cannot open README";
 use Fcntl qw(:seek);
 seek(F,989,Fcntl::SEEK_SET);
 $ctx->addfile(F);
 close(F);
 $y = $ctx->digest;
-ok($y == 1468974098, 'OO crc32 with addfile '.$y); 
+ok($y == 1413438101, 'OO crc32 with init and addfile '.$y); 
 
 $ctx = Digest::CRC->new(type=>"crcccitt"); 
 $ctx->add($input);

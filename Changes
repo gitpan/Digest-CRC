@@ -34,3 +34,6 @@ Revision history for Perl extension Digest::CRC.
 0.12  Sat Nov  3 10:11:42 2007
         - Debug output removed
 
+0.13  Sun Nov  4 11:22:54 2007
+        - fixed tests
+
