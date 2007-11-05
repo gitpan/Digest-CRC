@@ -16,7 +16,7 @@ require Exporter;
  crc32_hex crc32_base64
 );
 
-$VERSION    = '0.13';
+$VERSION    = '0.14';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -85,7 +85,7 @@ sub _tabinit {
 sub _crc {
   my ($message,$width,$init,$xorout,$refin,$refout,$tab) = @_;
   my $crc = $init;
-  $crc = __reflect($crc,$width) if $refin;
+  $crc = _reflect($crc,$width) if $refin;
   my $pos = -length $message;
   my $mask = 2**$width-1;
   while ($pos) {

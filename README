@@ -1,4 +1,4 @@
-Digest::CRC version 0.13
+Digest::CRC version 0.14
 ========================
 
 NAME
@@ -41,3 +41,9 @@ To install this module type the following:
    make test
    make install
 
+COPYRIGHT AND LICENCE
+   CRC algorithm code taken from "A PAINLESS GUIDE TO CRC ERROR DETECTION
+   ALGORITHMS".
+
+   The author of this package disclaims all copyrights and releases it
+   into the public domain.
