@@ -40,3 +40,11 @@ Revision history for Perl extension Digest::CRC.
 0.14  Mon Nov  5 08:10:11 2007
         - fixed __reflect error in non XS part
 
+0.15  Sun Sep 12 13:46:13 2010
+        - added crc64 support, #50064
+          Thanks to Anders Ossowicki <aowi@novozymes.com>
+        - added bit reversing per byte, #59575
+          Thanks to Joel Peshkin <joel@peshkin.net>
+        - clone method nwo copies content too
+          Thanks to Stefan Ochs <stefan.ochs@opentext.com>
+

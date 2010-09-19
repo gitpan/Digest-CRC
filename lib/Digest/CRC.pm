@@ -8,15 +8,16 @@ require Exporter;
 @ISA = qw(Exporter);
 
 @EXPORT_OK = qw(
- crc8 crcccitt crc16 crc32 crc
+ crc8 crcccitt crc16 crc32 crc64 crc
  crc_hex crc_base64
  crcccitt_hex crcccitt_base64
  crc8_hex crc8_base64
  crc16_hex crc16_base64
  crc32_hex crc32_base64
+ crc64_hex crc64_base64
 );
 
-$VERSION    = '0.14';
+$VERSION    = '0.15';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -85,7 +86,11 @@ sub _tabinit {
 sub _crc {
   my ($message,$width,$init,$xorout,$refin,$refout,$tab) = @_;
   my $crc = $init;
-  $crc = _reflect($crc,$width) if $refin;
+  if ($refin = 1) {
+    $crc = _reflect($crc,$width);
+  elsif ($refin > 1 and $refin <= $width)
+    $crc = _reflect($crc,$refin);
+  }
   my $pos = -length $message;
   my $mask = 2**$width-1;
   while ($pos) {
@@ -96,8 +101,12 @@ sub _crc {
     }
   }
 
-  if ($refout^$refin) {
-    $crc = _reflect($crc,$width);
+  if ($refout && !$refin) {
+    if ($refout = 1) {
+      $crc = _reflect($crc,$width);
+    elsif ($refout > 1 and $refout <= $width) {
+      $crc = _reflect($crc,$refout);
+    }
   }
 
   $crc = $crc ^ $xorout;
@@ -232,7 +241,8 @@ sub clone {
     xorout => $self->{xorout},
     poly => $self->{poly},
     refin => $self->{refin},
-    refout => $self->{refout}
+    refout => $self->{refout},
+    _data => $self->{_data}
   };
   bless $clone, ref $self || $self;
 }
@@ -267,6 +277,11 @@ sub crc16 { crc($_[0],@{$_typedef{crc16}}) }
 
 sub crc32 { crc($_[0],@{$_typedef{crc32}}) }
 
+# CRC64
+# special XS implementation (_crc64)
+
+sub crc64 { _crc64($_[0]) }
+
 sub crc_hex { _encode_hex &crc }
 
 sub crc_base64 { _encode_base64 &crc }
@@ -287,6 +302,10 @@ sub crc32_hex { _encode_hex &crc32 }
 
 sub crc32_base64 { _encode_base64 &crc32 }
 
+sub crc64_hex { _encode_hex &crc64 }
+
+sub crc64_base64 { _encode_base64 &crc64 }
+
 1;
 __END__
 
@@ -298,7 +317,8 @@ Digest::CRC - Generic CRC functions
 
   # Functional style
 
-  use Digest::CRC qw(crc32 crc16 crcccitt crc crc8);
+  use Digest::CRC qw(crc64 crc32 crc16 crcccitt crc crc8);
+  $crc = crc64("123456789");
   $crc = crc32("123456789");
   $crc = crc16("123456789");
   $crc = crcccitt("123456789");
@@ -325,7 +345,7 @@ Digest::CRC - Generic CRC functions
 
 The B<Digest::CRC> module calculates CRC sums of all sorts.
 It contains wrapper functions with the correct parameters for CRC-CCITT,
-CRC-16 and CRC-32.
+CRC-16, CRC-32 and CRC-64.
 
 =head1 AUTHOR
 

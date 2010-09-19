@@ -148,3 +148,45 @@ _crc(message, width, init, xorout, refin, refout, table)
 
         OUTPUT:
 		RETVAL
+
+SV *
+_crc64(message)
+          SV * message
+
+          PREINIT:
+                  unsigned long long poly64rev = 0xd800000000000000;
+                  unsigned long long crc = 0x0000000000000000;
+                  unsigned long long part;
+                  int i, j;
+                  static int init = 0;
+                  static unsigned long long CRCTable[256];
+                  STRLEN len;
+                  const char *msg, *end;
+
+          CODE:
+               SvGETMAGIC(message);
+               msg = SvPV(message, len);
+               end = msg + len;
+
+               if (!init) {
+                 init = 1;
+
+                 for (i = 0; i < 256; i++) {
+                   part = i;
+                   for (j = 0; j < 8; j++) {
+                     if (part & 1)
+                       part = (part >> 1) ^ poly64rev;
+                     else
+                       part >>= 1;
+                   }
+                   CRCTable[i] = part;
+                 }
+               }
+               while (msg < end)
+                 crc = CRCTable[(crc ^ *msg++) & 0xff] ^ (crc >> 8);
+
+               RETVAL = newSVuv(crc);
+
+        OUTPUT:
+               RETVAL
+
