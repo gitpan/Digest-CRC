@@ -17,7 +17,7 @@ require Exporter;
  crc64_hex crc64_base64
 );
 
-$VERSION    = '0.15';
+$VERSION    = '0.16';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -42,9 +42,9 @@ sub _reflectperl {
 }
 
 # Only load the non-XS stuff on demand
-defined &_crc or eval <<'ENOXS';
+defined &_crc or eval <<'ENOXS' or die $@;
 
-sub _reflect {
+sub _reflect($$) {
   my ($in, $width) = @_;
   my $out = 0;
   for(my $i=1; $i < ($width+1); $i++) {
@@ -54,7 +54,7 @@ sub _reflect {
   $out;
 }
 
-sub _tabinit {
+sub _tabinit($$$) {
   my ($width,$poly_in,$ref) = @_;
   my @crctab;
   my $poly = $poly_in;
@@ -83,12 +83,12 @@ sub _tabinit {
   \@crctab;
 }
 
-sub _crc {
+sub _crc($$$$$$$) {
   my ($message,$width,$init,$xorout,$refin,$refout,$tab) = @_;
   my $crc = $init;
-  if ($refin = 1) {
+  if ($refin == 1) {
     $crc = _reflect($crc,$width);
-  elsif ($refin > 1 and $refin <= $width)
+  } elsif ($refin > 1 and $refin <= $width) {
     $crc = _reflect($crc,$refin);
   }
   my $pos = -length $message;
@@ -102,9 +102,9 @@ sub _crc {
   }
 
   if ($refout && !$refin) {
-    if ($refout = 1) {
+    if ($refout == 1) {
       $crc = _reflect($crc,$width);
-    elsif ($refout > 1 and $refout <= $width) {
+    } elsif ($refout > 1 and $refout <= $width) {
       $crc = _reflect($crc,$refout);
     }
   }
@@ -112,6 +112,8 @@ sub _crc {
   $crc = $crc ^ $xorout;
   $crc & $mask;
 }
+
+1;
 
 ENOXS
 

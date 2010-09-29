@@ -1,5 +1,8 @@
 BEGIN {
-  $tests = 21;
+  $tests = 20;
+  if ($ENV{'WITH_CRC64'}) {
+    $tests++;
+  }
   $| = 1;
 
   eval "use Test::More tests => $tests";
@@ -22,9 +25,13 @@ use Digest::CRC qw(crc64 crc32 crc16 crcccitt crc8);
 ok(1, 'use');
 
 my $input = "123456789";
-my ($crc64,$crc32,$crc16,$crcccitt,$crc8) = (crc64($input),crc32($input),crc16($input),crcccitt($input),crc8($input));
+my ($crc32,$crc16,$crcccitt,$crc8) = (crc32($input),crc16($input),crcccitt($input),crc8($input));
 
-ok($crc64 == 5090661014116757502, 'crc64 '.$crc64); 
+if ($ENV{'WITH_CRC64'}) {
+  my $crc64 = crc64($input);
+  ok($crc64 == 5090661014116757502, 'crc64 '.$crc64); 
+}
+
 ok($crc32 == 3421780262, 'crc32'); 
 $crc32=$crc32^0xffffffff;
 ok(crc32($input.join('', 
@@ -46,7 +53,7 @@ open(F,"<README")||die "Cannot open Changes";
 $ctx->addfile(F);
 close(F);
 my $y = $ctx->digest;
-ok($y == 1089047938, 'OO crc32 with addfile '.$y); 
+ok($y == 3439495136, 'OO crc32 with addfile '.$y); 
 
 # start at offset >0 with previous checksum result
 $ctx = Digest::CRC->new(type=>"crc32",cont=>1,init=>460478609); 

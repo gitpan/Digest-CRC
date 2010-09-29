@@ -154,8 +154,8 @@ _crc64(message)
           SV * message
 
           PREINIT:
-                  unsigned long long poly64rev = 0xd800000000000000;
-                  unsigned long long crc = 0x0000000000000000;
+                  unsigned long long poly64rev = 0xd800000000000000ULL;
+                  unsigned long long crc = 0x0000000000000000ULL;
                   unsigned long long part;
                   int i, j;
                   static int init = 0;
