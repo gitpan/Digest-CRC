@@ -53,7 +53,7 @@ open(F,"<README")||die "Cannot open Changes";
 $ctx->addfile(F);
 close(F);
 my $y = $ctx->digest;
-ok($y == 3439495136, 'OO crc32 with addfile '.$y); 
+ok($y == 9141249, 'OO crc32 with addfile '.$y); 
 
 # start at offset >0 with previous checksum result
 $ctx = Digest::CRC->new(type=>"crc32",cont=>1,init=>460478609); 
@@ -73,8 +73,8 @@ $ctx = Digest::CRC->new(type=>"crc16");
 $ctx->add($input);
 ok($ctx->digest == 47933, 'OO crc16'); 
 
-$ctx = Digest::CRC->new(width=>16,init=>0,xorout=>0,poly=>0x3456,
-                        refin=>1,refout=>1);
+$ctx = Digest::CRC->new(width=>16,init=>0,xorout=>0,refout=>1,poly=>0x3456,
+                        refin=>1,cont=>0);
 $ctx->add($input);
 ok($ctx->digest == 12803, 'OO crc16 poly 3456'); 
 
@@ -83,13 +83,13 @@ $ctx->add($input);
 ok($ctx->digest == 244, 'OO crc8');
 
 # crc8 test from Mathis Moder <mathis@pixelconcepts.de>
-$ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0x00,poly=>0x07,
-                        refin=>0, refout=>0);
+$ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0x00, refout=>0, poly=>0x07,
+                        refin=>0, cont=>0);
 $ctx->add($input);
 ok($ctx->digest == 135, 'OO crc8 init=ab');
 
-$ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0xff,poly=>0x07,
-                        refin=>1, refout=>1);
+$ctx = Digest::CRC->new(width=>8, init=>0xab, xorout=>0xff, refout=>1, poly=>0x07,
+                        refin=>1, cont=>0);
 $ctx->add("f1");
 ok($ctx->digest == 106, 'OO crc8 init=ab, refout');
 

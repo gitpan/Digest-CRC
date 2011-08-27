@@ -105,13 +105,14 @@ _tabinit(width, poly, ref)
 		RETVAL
 
 SV *
-_crc(message, width, init, xorout, refin, refout, table)
+_crc(message, width, init, xorout, refin, refout, cont, table)
 	SV *message
 	IV  width
 	UV  init
 	UV  xorout
 	IV  refin
 	IV  refout
+	IV  cont
 	SV *table
 
 	PREINIT:
@@ -122,6 +123,11 @@ _crc(message, width, init, xorout, refin, refout, table)
         CODE:
 		SvGETMAGIC(message);
 
+		if (cont) {
+			init = (init ^ xorout);
+			if (refin)
+				init = reflect(init, width);
+		}
 		crc  = refin ? reflect(init, width) : init;
 		msg  = SvPV(message, len);
 		end  = msg + len;

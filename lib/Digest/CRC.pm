@@ -17,7 +17,7 @@ require Exporter;
  crc64_hex crc64_base64
 );
 
-$VERSION    = '0.16';
+$VERSION    = '0.17';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -83,8 +83,12 @@ sub _tabinit($$$) {
   \@crctab;
 }
 
-sub _crc($$$$$$$) {
-  my ($message,$width,$init,$xorout,$refin,$refout,$tab) = @_;
+sub _crc($$$$$$$$) {
+  my ($message,$width,$init,$xorout,$refin,$refout,$cont,$tab) = @_;
+  if ($cont) {
+    $init = ($init ^ $xorout);
+    $init = _reflect($init, $width) if $refin;
+  }
   my $crc = $init;
   if ($refin == 1) {
     $crc = _reflect($crc,$width);
@@ -118,11 +122,11 @@ sub _crc($$$$$$$) {
 ENOXS
 
 %_typedef = (
-# name,  [width,init,xorout,refout,poly,refin);
-  crc8 => [8,0,0,0,0x07,0],
-  crcccitt => [16,0xffff,0,0,0x1021,0],
-  crc16 => [16,0,0,1,0x8005,1],
-  crc32 => [32,0xffffffff,0xffffffff,1,0x04C11DB7,1],
+# name,  [width,init,xorout,refout,poly,refin,cont);
+  crc8 => [8,0,0,0,0x07,0,0],
+  crcccitt => [16,0xffff,0,0,0x1021,0,0],
+  crc16 => [16,0,0,1,0x8005,1,0],
+  crc32 => [32,0xffffffff,0xffffffff,1,0x04C11DB7,1,0],
 );
 
 sub new {
@@ -130,11 +134,11 @@ sub new {
   my %params=@_;
   my $class = ref($that) || $that;
   my $self = {map { ($_ => $params{$_}) }
-                      qw(type width init xorout poly refin refout cont)};
+                      qw(type width init xorout refout poly refin cont)};
   bless $self, $class;
   $self->reset();
   map { if (defined($params{$_})) { $self->{$_} = $params{$_} } }
-                      qw(type width init xorout poly refin refout cont);
+                      qw(type width init xorout refout poly refin cont);
   $self
 }
 
@@ -153,6 +157,7 @@ sub reset {
     $self->{refout} = $typeparams->[3],
     $self->{poly} = $typeparams->[4],
     $self->{refin} = $typeparams->[5],
+    $self->{cont} = $typeparams->[6],
   }
   $self->{_tab} = _tabinit($self->{width}, $self->{poly}, $self->{refin});
   $self->{_data} = undef;
@@ -212,12 +217,8 @@ sub digest {
   my $crc;
   if (!$self->{_crc}) {
     my $init = $self->{init};
-    if ($self->{cont}) {
-      $init = ($self->{init} ^ $self->{xorout});
-      $init = _reflect($init, $self->{width}) if $self->{refin};
-    }
     $crc =_crc($self->{_data},$self->{width},$init,$self->{xorout},
-	 $self->{refin},$self->{refout},$self->{_tab});
+	 $self->{refin},$self->{refout},$self->{cont},$self->{_tab});
   } else {
     $crc = $self->{_crc};
     $self->{_crc} = undef;
@@ -253,8 +254,8 @@ sub clone {
 # Procedural interface:
 
 sub crc {
-  my ($message,$width,$init,$xorout,$refout,$poly,$refin) = @_;
-  _crc($message,$width,$init,$xorout,$refin,$refout,_tabinit($width,$poly,$refin));
+  my ($message,$width,$init,$xorout,$refout,$poly,$refin,$cont) = @_;
+  _crc($message,$width,$init,$xorout,$refin,$refout,$cont,_tabinit($width,$poly,$refin));
 }
 
 # CRC8
@@ -326,14 +327,14 @@ Digest::CRC - Generic CRC functions
   $crc = crcccitt("123456789");
   $crc = crc8("123456789");
 
-  $crc = crc($input,$width,$init,$xorout,$refout,$poly,$refin);
+  $crc = crc($input,$width,$init,$xorout,$refout,$poly,$refin,$cont);
 
   # OO style
   use Digest::CRC;
 
   $ctx = Digest::CRC->new(type=>"crc16");
   $ctx = Digest::CRC->new(width=>16, init=>0x2345, xorout=>0x0000, 
-                          poly=>0x8005, refin=>1, refout=>1, cont=>1);
+                          refout=>1, poly=>0x8005, refin=>1, cont=>1);
 
   $ctx->add($data);
   $ctx->addfile(*FILE);
