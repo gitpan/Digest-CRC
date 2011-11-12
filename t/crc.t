@@ -1,5 +1,5 @@
 BEGIN {
-  $tests = 20;
+  $tests = 21;
   if ($ENV{'WITH_CRC64'}) {
     $tests++;
   }
@@ -21,7 +21,7 @@ sub ok {
 ENDEV
 }
 
-use Digest::CRC qw(crc64 crc32 crc16 crcccitt crc8);
+use Digest::CRC qw(crc64 crc32 crc16 crcccitt crc8 crcopenpgparmor);
 ok(1, 'use');
 
 my $input = "123456789";
@@ -53,7 +53,7 @@ open(F,"<README")||die "Cannot open Changes";
 $ctx->addfile(F);
 close(F);
 my $y = $ctx->digest;
-ok($y == 9141249, 'OO crc32 with addfile '.$y); 
+ok($y == 3613349160, 'OO crc32 with addfile '.$y); 
 
 # start at offset >0 with previous checksum result
 $ctx = Digest::CRC->new(type=>"crc32",cont=>1,init=>460478609); 
@@ -101,3 +101,7 @@ ok($crc32 == 0xCDA63E54, 'crc32');
 ok($crcccitt == 0x9702, 'crcccitt'); 
 ok($crc16 == 0x0220, 'crc16'); 
 ok($crc8 == 0x82, 'crc8'); 
+
+# openpgparmor
+my $openpgparmor = crcopenpgparmor($input);
+ok($openpgparmor == 4874579, 'openpgparmor '.$openpgparmor); 

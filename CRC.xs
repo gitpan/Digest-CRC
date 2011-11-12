@@ -31,7 +31,7 @@ static UV reflect(UV in, int width)
   int i;
   UV out = 0;
 
-  for (i = width; in; i--, in >>= 1)
+  for (i = width; in && i; i--, in >>= 1)
     out = (out << 1) | (in & 1);
 
   return out << i;
@@ -123,17 +123,18 @@ _crc(message, width, init, xorout, refin, refout, cont, table)
         CODE:
 		SvGETMAGIC(message);
 
-		if (cont) {
-			init = (init ^ xorout);
-			if (refin)
-				init = reflect(init, width);
-		}
-		crc  = refin ? reflect(init, width) : init;
 		msg  = SvPV(message, len);
 		end  = msg + len;
 		mask = ((UV)1)<<(width-1);
 		mask = mask + (mask-1);
 		tab  = (UV *) SvPVX(table);
+
+		crc  = refin ? reflect(init, width) : init;
+		if (cont) {
+		  crc = (init ^ xorout) & mask;
+		  if (refout ^ refin)
+		    crc = reflect(crc, width);
+		}
 
 		if (refin) {
 		  while (msg < end)
@@ -156,12 +157,12 @@ _crc(message, width, init, xorout, refin, refout, cont, table)
 		RETVAL
 
 SV *
-_crc64(message)
+_crc64(message, crc=0)
           SV * message
+          UV crc
 
           PREINIT:
                   unsigned long long poly64rev = 0xd800000000000000ULL;
-                  unsigned long long crc = 0x0000000000000000ULL;
                   unsigned long long part;
                   int i, j;
                   static int init = 0;

@@ -8,16 +8,17 @@ require Exporter;
 @ISA = qw(Exporter);
 
 @EXPORT_OK = qw(
- crc8 crcccitt crc16 crc32 crc64 crc
+ crc8 crcccitt crc16 crcopenpgparmor crc32 crc64 crc
  crc_hex crc_base64
  crcccitt_hex crcccitt_base64
  crc8_hex crc8_base64
  crc16_hex crc16_base64
+ crcopenpgparmor_hex crcopenpgparmor_base64
  crc32_hex crc32_base64
  crc64_hex crc64_base64
 );
 
-$VERSION    = '0.17';
+$VERSION    = '0.18';
 $XS_VERSION = $VERSION;
 $VERSION    = eval $VERSION;
 
@@ -126,6 +127,7 @@ ENOXS
   crc8 => [8,0,0,0,0x07,0,0],
   crcccitt => [16,0xffff,0,0,0x1021,0,0],
   crc16 => [16,0,0,1,0x8005,1,0],
+  crcopenpgparmor => [24,0xB704CE,0,0,0x864CFB,0,0],
   crc32 => [32,0xffffffff,0xffffffff,1,0x04C11DB7,1,0],
 );
 
@@ -167,15 +169,19 @@ sub reset {
 #########################################
 # Private output converter functions:
 sub _encode_hex { sprintf "%x", $_[0] }
+
 sub _encode_base64 {
-	my $res;
-	while ($_[0] =~ /(.{1,45})/gs) {
-		$res .= substr pack('u', $1), 1;
-		chop $res;
-	}
-	$res =~ tr|` -_|AA-Za-z0-9+/|;#`
-	chop $res; chop $res;
-	$res
+  my ($res, $padding, $in) = ("", undef, $_[0]);
+  $in = pack("H*", sprintf("%x",$in));
+  while ($in =~ /(.{1,45})/gs) {
+	  $res .= substr pack('u', $1), 1;
+	  chop $res;
+  }
+  $res =~ tr|` -_|AA-Za-z0-9+/|;
+  $padding = (3 - length($in) % 3) % 3;
+  $res =~ s#.{$padding}$#'=' x $padding#e if $padding;
+  $res =~ s#(.{1,76})#$1\n#g;
+  $res
 }
 
 #########################################
@@ -258,32 +264,47 @@ sub crc {
   _crc($message,$width,$init,$xorout,$refin,$refout,$cont,_tabinit($width,$poly,$refin));
 }
 
+sub _cont {
+  my ($message,$init,@parameters) = @_;
+  if (defined $init) {
+    $parameters[1] = $init;
+    $parameters[6] = 1;
+  }
+  crc($message,@parameters);
+}
+
 # CRC8
 # poly: 07, width: 8, init: 00, revin: no, revout: no, xorout: no
 
-sub crc8 { crc($_[0],@{$_typedef{crc8}}) }
+sub crc8 { _cont($_[0],$_[1],@{$_typedef{crc8}}) }
 
 # CRC-CCITT standard
 # poly: 1021, width: 16, init: ffff, refin: no, refout: no, xorout: no
 
-sub crcccitt { crc($_[0],@{$_typedef{crcccitt}}) }
+sub crcccitt { _cont($_[0],$_[1],@{$_typedef{crcccitt}}) }
 
 # CRC16
 # poly: 8005, width: 16, init: 0000, revin: yes, revout: yes, xorout: no
 
-sub crc16 { crc($_[0],@{$_typedef{crc16}}) }
+sub crc16 { _cont($_[0],$_[1],@{$_typedef{crc16}}) }
+
+# CRC-24 for OpenPGP ASCII Armor checksum
+# https://tools.ietf.org/html/rfc4880#section-6
+# poly: 0x864CFB, width: 24, init: 0xB704CE, refin: no, refout: no, xorout: no
+
+sub crcopenpgparmor { crc($_[0],@{$_typedef{crcopenpgparmor}}) }
 
 # CRC32
 # poly: 04C11DB7, width: 32, init: FFFFFFFF, revin: yes, revout: yes,
 # xorout: FFFFFFFF
 # equivalent to: cksum -o3
 
-sub crc32 { crc($_[0],@{$_typedef{crc32}}) }
+sub crc32 { _cont($_[0],$_[1],@{$_typedef{crc32}}) }
 
 # CRC64
 # special XS implementation (_crc64)
 
-sub crc64 { _crc64($_[0]) }
+sub crc64 { _crc64($_[0],$_[1]) }
 
 sub crc_hex { _encode_hex &crc }
 
@@ -300,6 +321,10 @@ sub crcccitt_base64 { _encode_base64 &crcccitt }
 sub crc16_hex { _encode_hex &crc16 }
 
 sub crc16_base64 { _encode_base64 &crc16 }
+
+sub crcopenpgparmor_hex { _encode_hex &crcopenpgparmor }
+
+sub crcopenpgparmor_base64 { _encode_base64 &crcopenpgparmor }
 
 sub crc32_hex { _encode_hex &crc32 }
 
@@ -320,14 +345,21 @@ Digest::CRC - Generic CRC functions
 
   # Functional style
 
-  use Digest::CRC qw(crc64 crc32 crc16 crcccitt crc crc8);
+  use Digest::CRC qw(crc64 crc32 crc16 crcccitt crc crc8 crcopenpgparmor);
   $crc = crc64("123456789");
   $crc = crc32("123456789");
   $crc = crc16("123456789");
   $crc = crcccitt("123456789");
   $crc = crc8("123456789");
+  $crc = crcopenpgparmor("123456789");
 
   $crc = crc($input,$width,$init,$xorout,$refout,$poly,$refin,$cont);
+
+
+  # add data to existing
+
+  $crc = crc32("ABCD", $crc);
+
 
   # OO style
   use Digest::CRC;
@@ -348,7 +380,12 @@ Digest::CRC - Generic CRC functions
 
 The B<Digest::CRC> module calculates CRC sums of all sorts.
 It contains wrapper functions with the correct parameters for CRC-CCITT,
-CRC-16, CRC-32 and CRC-64.
+CRC-16, CRC-32 and CRC-64, as well as the CRC used in OpenPGP's
+ASCII-armored checksum.
+
+=head1 SEE ALSO
+
+https://tools.ietf.org/html/rfc4880#section-6
 
 =head1 AUTHOR
 

@@ -54,3 +54,7 @@ Revision history for Perl extension Digest::CRC.
 0.17  Sat Aug 27 13:59:31 2011
         - fixed non-xs code, #70535
 
+0.18  Sat Nov 12 23:09:05 2011
+        - added convenience wrappers for 'cont', #70672
+        - fixed few issues in xs code, #70674
+        - added openpgparmor support, #72387
